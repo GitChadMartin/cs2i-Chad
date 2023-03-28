@@ -5,29 +5,45 @@ stages:
 
 variables:
   VAR1: valeur
-  
+# Nos runners ne prennent que des jobs taggués..  
+
 Environnement1:
   stage: tests
+  tags:
+  - build
   variables:
   script:
   - set
 
 Environnement2:
   stage: tests
+  tags:
+  - deploy
   variables:
-    VAR1: autre-valeur 
+    VAR1: autre-valeur
   script:
   - set
 
 Construction Image:
   stage: build
+  tags:
+  - build
   script:
-  - docker image build 
-  - docker login 
-  - docker logout 
+  - docker image build -t ${CI_REGISTRY_IMAGE}:devel  .
+  after_script:
+  - echo ${CI_REGISTRY_PASSWORD} | docker login  -u ${CI_REGISTRY_USER} --password-stdin  ${CI_REGISTRY}
+  - docker image push ${CI_REGISTRY_IMAGE}:devel
+  - docker logout ${CI_REGISTRY}
 
 Déploiement Stack:
   stage: deploy
+  tags:
+  - deploy
+  before_script:
+  - echo ${CI_REGISTRY_PASSWORD} | docker login  -u ${CI_REGISTRY_USER} --password-stdin  ${CI_REGISTRY}
   script:
-  - docker stack deploy 
+  - echo "docker stack deploy ..."
+  - docker stack deploy --with-registry-auth -c compose.yaml ${CI_PROJECT_PATH_SLUG} 
+  after_script:
+  - docker logout ${CI_REGISTRY}
 
