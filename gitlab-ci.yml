@@ -1,0 +1,33 @@
+stages:
+- tests
+- build
+- deploy
+
+variables:
+  VAR1: valeur
+  
+Environnement1:
+  stage: tests
+  variables:
+  script:
+  - set
+
+Environnement2:
+  stage: tests
+  variables:
+    VAR1: autre-valeur 
+  script:
+  - set
+
+Construction Image:
+  stage: build
+  script:
+  - docker image build 
+  - docker login 
+  - docker logout 
+
+Déploiement Stack:
+  stage: deploy
+  script:
+  - docker stack deploy 
+
