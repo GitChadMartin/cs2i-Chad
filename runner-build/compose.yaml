@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  runner-cma:
+    image: gitlab/gitlab-runner:alpine
+    env_file:
+    - runner.env
+    entrypoint: "bash"
+    command: |
+      -c '
+        set -e
+        printf "Setting configuration...\\n"
+        mkdir -p /etc/gitlab-runner
+        echo -e "log_level = \"warning\"\nconcurrent = $${CONCURRENT}\ncheck_interval = $${CHECK_INTERVAL}\n\n[session_server]\n  session_timeout = 1800" > /etc/gitlab-runner/config.toml
+
+        printf "\\n"
+
+        printf "Registering runner...\\n"
+        gitlab-runner register --non-interactive --docker-privileged --run-untagged="false" --tag-list $${TAG_LIST}
+        printf "\\n"
+
+        printf "Running runner...\\n"
+        gitlab-runner run --user=gitlab-runner --working-directory=/home/gitlab-runner
+        printf "\\n"
+
+        printf "List runners...\\n"
+        gitlab-runner list
+        printf "\\n"
+      '
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=false"
+    # healthcheck:
+      # test: "gitlab-runner verify --name $${RUNNER_NAME} 2>&1 | grep -q alive"
+      # start_period: 10s
+      # interval: 10s
+      # timeout: 10s
+      # retries: 10
